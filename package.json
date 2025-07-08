@@ -1,0 +1,15 @@
+{
+  "name": "code-collab",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "frontend": "cd frontend && pnpm run dev",
+    "backend": "cd backend && pnpm run dev",
+    "dev": "concurrently \"pnpm run frontend\" \"pnpm run backend\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4"
+}
