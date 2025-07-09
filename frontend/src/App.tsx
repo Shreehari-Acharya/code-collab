@@ -1,17 +1,12 @@
 import './App.css'
-import CollaborativeEditor from './components/CollaborativeEditor'
-import TerminalComponent from './components/Terminal'
+import { ResizableWorkSpace } from './components/resizableWorkspace'
+
 
 
 function App() {
   return (
     <>
-      <div>
-        <CollaborativeEditor roomId="shreehari-6206" />
-      </div>
-      <div>
-        <TerminalComponent webSocketUrl="ws://localhost:8080/ws" />
-      </div>
+      <ResizableWorkSpace/>
     </>
   )
 }

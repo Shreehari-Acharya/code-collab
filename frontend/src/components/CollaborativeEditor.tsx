@@ -33,6 +33,10 @@ export default function CollaborativeEditor({ roomId }: { roomId: string }) {
     }
   }, [ydoc, provider, editor])
 
-  return <Editor height="60vh" theme="vs-dark" defaultLanguage="javascript" onMount={editor => { setEditor(editor) }} />
+  return (
+    <div className="w-full h-full">
+      <Editor height="100vh" theme="vs-dark" defaultLanguage="javascript" onMount={editor => { setEditor(editor) }} />
+    </div>
+  )
 }
 

@@ -13,12 +13,12 @@ const TerminalComponent = ({ webSocketUrl }: TerminalComponentProps) => {
   const xtermRef = useRef<Terminal>(null)
   const fitAddonRef = useRef<FitAddon>(null)
   const socketRef = useRef<WebSocket>(null)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
   useEffect(() => {
     if (!terminalRef.current || !webSocketUrl) return
 
     const xterm = new Terminal({
-      rows: 13,
       cursorBlink: true,
       cursorStyle: 'underline',
       fontSize: 14,
@@ -41,13 +41,14 @@ const TerminalComponent = ({ webSocketUrl }: TerminalComponentProps) => {
     xterm.open(terminalRef.current)
     fitAddon.fit()
 
-    xterm.onRender(() => { //scroll to bottom when new content is rendered
-      const buffer = xterm.buffer.active;
-      const isAtBottom = buffer.viewportY >= buffer.baseY - 1;
-      if (isAtBottom) {
-        xterm.scrollToBottom();
-      }
-    });
+    // ResizeObserver to detect panel resize
+    resizeObserverRef.current = new ResizeObserver(() => {
+      fitAddon.fit()
+      xterm.scrollToBottom(); 
+    })
+
+    resizeObserverRef.current.observe(terminalRef.current)
+
 
     xtermRef.current = xterm
     fitAddonRef.current = fitAddon
@@ -60,6 +61,7 @@ const TerminalComponent = ({ webSocketUrl }: TerminalComponentProps) => {
       window.removeEventListener('resize', handleResize)
       socket.close()
       xterm.dispose()
+      resizeObserverRef.current?.disconnect()
     }
   }, [webSocketUrl])
 
