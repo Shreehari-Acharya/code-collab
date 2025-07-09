@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+body{
+  margin: 0px;
+  padding: 0px;
+  background-color: '1e1e1e'; /* Dark background */
+  overflow-x: hidden;
+}
+
+/* Gives a little bit of padding to the terminal container */
+.xterm .xterm-screen {
+  padding: 14px; 
+  position: relative;
+}
