@@ -1,0 +1,22 @@
+# Dockerfile.workspace
+FROM node:18-slim
+
+# Create a non-root user for safety
+RUN useradd -ms /bin/bash devuser
+
+# Set working directory
+WORKDIR /workspace
+
+# Install additional tools - these are common for development
+RUN apt-get update && apt-get install -y \
+    git curl build-essential python3 python3-pip nano htop \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set permissions
+RUN chown -R devuser:devuser /workspace
+
+# Switch to non-root user
+USER devuser
+
+# Start with a shell
+CMD ["sh"]
