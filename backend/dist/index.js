@@ -17,6 +17,7 @@ const ws_1 = require("ws");
 const http_1 = __importDefault(require("http"));
 const Docker_1 = require("./modules/Docker");
 const cors_1 = __importDefault(require("cors"));
+const parseToTree_1 = require("./utils/parseToTree");
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const wss = new ws_1.WebSocketServer({ server });
@@ -46,14 +47,31 @@ wss.on('connection', (ws, req) => __awaiter(void 0, void 0, void 0, function* ()
         return;
     }
 }));
-app.post('/', (req, res) => {
+app.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userId } = req.body;
     if (!userId) {
         return res.status(400).send('User ID is required');
     }
-    const containerId = docker.createNewWorkspace(userId);
+    const containerId = yield docker.createNewWorkspace(userId);
     res.status(201).json({ message: 'Container created', containerId });
-});
+}));
+app.get('/fileStructure', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const containerId = req.query.containerId;
+    const path = req.query.path ? req.query.path : '/';
+    console.log(path);
+    if (!path) {
+        return res.status(400).send('Path is required');
+    }
+    if (!containerId) {
+        return res.status(400).send('Container ID is required');
+    }
+    const output = yield docker.listWorkspaceFiles(containerId, path);
+    if (!output) {
+        return res.status(404).send('No files found');
+    }
+    const tree = (0, parseToTree_1.parseToTree)(output, path);
+    res.status(200).json(tree);
+}));
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
     console.log(`WebSocket server is running on ws://localhost:${PORT}`);
