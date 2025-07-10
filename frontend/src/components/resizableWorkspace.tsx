@@ -5,9 +5,10 @@ import {
 } from "@/components/ui/resizable"
 import CollaborativeEditor from "./CollaborativeEditor"
 import TerminalComponent from "./Terminal"
+import FileExplorer from "./FileExplorer"
 
 export function ResizableWorkSpace() {
-  const containerId = "350108d2bf05"
+  const containerId = "c175de09d2cf5df91bd8b7b4cd329c41a0278419887500e3756c4b552bf2f55f"
   const userId = "shreehari-6206"
   return (
     <ResizablePanelGroup
@@ -15,9 +16,7 @@ export function ResizableWorkSpace() {
       className="w-full h-full"
     >
       <ResizablePanel defaultSize={15}>
-        <div className="flex h-full items-center justify-center p-6">
-          <span className="font-semibold">One</span>
-        </div>
+          <FileExplorer containerId={containerId} />
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize={70} className="h-screen">
