@@ -3,18 +3,23 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { RefreshCcw } from "lucide-react";
 
-export default function FileExplorer({containerId}: {containerId: string}) {
+interface FileExplorerProps {
+  userId: string;
+  handleFileClick: (id: string) => void;
+}
+export default function FileExplorer({ userId, handleFileClick }: FileExplorerProps) {
   const [treeData, setTreeData] = useState<TreeViewElement[]>([]);
 
   const fetchWorkspaceFiles = useCallback(async (path: string = '/') => {
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/fileStructure/?containerId=${containerId}&path=${path}`);
+      console.log("Fetching workspace files for path:", path);
+      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/fileStructure/?userId=${userId}&path=${path}`);
       return data as TreeViewElement[];
     } catch (error) {
       console.error("Error fetching workspace files:", error);
       return [];
     }
-  }, [containerId]);
+  }, [userId]);
 
   useEffect(() => {
     (async () => {
@@ -44,22 +49,23 @@ export default function FileExplorer({containerId}: {containerId: string}) {
 
   async function handleFolderClick(id: string) {
 
+    if (!id.endsWith("/")) return; 
     const children = await fetchWorkspaceFiles(id);
+
+    console.log("Adding children to", id, "children:", children);
+    
     const updatedTree = addChildrenToNode(treeData, id, children);
     setTreeData(updatedTree);
+    console.log(treeData);
   }
 
-  function handleFileClick(id: string) {
-    console.log(`File clicked: ${id}`);
-  }
-
-  const renderTree = (elements: TreeViewElement[], parentPath = '') => {
+  const renderTree = (elements: TreeViewElement[]) => {
 
     if(!elements || elements.length === 0) {
       return <div className="text-gray-500">No files found</div>;
     }
     return elements.map((element) => {
-      const currentPath = `${parentPath}${element.name}${element.children ? '/' : ''}`;
+
 
       const isFolder = element.children !== undefined || element.isSelectable === false;
       if (isFolder) {
@@ -70,7 +76,7 @@ export default function FileExplorer({containerId}: {containerId: string}) {
             value={element.id}
             handleSelect={async() => await handleFolderClick(element.id)}
           >
-            {renderTree(element.children ?? [] , currentPath)}
+            {renderTree(element.children ?? [])}
           </Folder>
         );
       } else {
@@ -79,7 +85,7 @@ export default function FileExplorer({containerId}: {containerId: string}) {
             key={element.id}
             value={element.id}
             isSelectable={element.isSelectable}
-            handleSelect={() => handleFileClick(element.id)}
+            handleSelect={(id) => handleFileClick(id)}
           >
             {element.name}
           </File>
