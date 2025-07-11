@@ -17,6 +17,9 @@ importers:
       dockerode:
         specifier: ^4.0.7
         version: 4.0.7
+      dotenv:
+        specifier: ^17.2.0
+        version: 17.2.0
       express:
         specifier: ^5.1.0
         version: 5.1.0
@@ -296,6 +299,10 @@ packages:
   dockerode@4.0.7:
     resolution: {integrity: sha512-R+rgrSRTRdU5mH14PZTCPZtW/zw3HDWNTS/1ZAQpL/5Upe/ye5K9WQkIysu4wBoiMwKynsz0a8qWuGsHgEvSAA==}
     engines: {node: '>= 8.0'}
+
+  dotenv@17.2.0:
+    resolution: {integrity: sha512-Q4sgBT60gzd0BB0lSyYD3xM4YxrXA9y4uBDof1JNYGzOXrQdQ6yX+7XIAqoFOGQFOTK1D3Hts5OllpxMDZFONQ==}
+    engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -1139,6 +1146,8 @@ snapshots:
       uuid: 10.0.0
     transitivePeerDependencies:
       - supports-color
+
+  dotenv@17.2.0: {}
 
   dunder-proto@1.0.1:
     dependencies:

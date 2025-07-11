@@ -14,6 +14,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DockerService = void 0;
 const dockerode_1 = __importDefault(require("dockerode"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = require("fs");
+const dotenv_1 = __importDefault(require("dotenv"));
+const sanitisers_1 = require("../../utils/sanitisers");
+dotenv_1.default.config();
 class DockerService {
     constructor() {
         this.docker = new dockerode_1.default({
@@ -23,12 +28,16 @@ class DockerService {
     createNewWorkspace(userId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                const sanitisedPath = (0, sanitisers_1.getSecureWorkspacePath)(userId);
                 const container = yield this.docker.createContainer({
                     Image: 'user-node-workspace',
                     name: `workspace-${userId}`,
                     Cmd: ['sh'],
                     Tty: true,
                     HostConfig: {
+                        Binds: [
+                            `${sanitisedPath}:/home/code-collab/workspace`, // Bind mount user workspace
+                        ],
                         PortBindings: {
                             '3000/tcp': [{ HostPort: '' }], // random port
                         },
@@ -87,36 +96,61 @@ class DockerService {
             }
         });
     }
-    listWorkspaceFiles(containerId, path) {
+    listWorkspaceFiles(userId, relativePath) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const container = this.docker.getContainer(containerId);
-                if (!container) {
-                    console.error(`Container with ID ${containerId} not found`);
-                    throw new Error('Container not found');
+                const basePath = (0, sanitisers_1.getSecureWorkspacePath)(userId);
+                const finalPath = path_1.default.join(basePath, relativePath);
+                // Ensure the path is within the user's workspace
+                if (!finalPath.startsWith(basePath)) {
+                    console.log(finalPath, basePath);
+                    throw new Error('Path traversal attempt detected');
                 }
-                const exec = yield container.exec({
-                    Cmd: ['ls', '-1Ap', `/workspace/${path}`],
-                    AttachStdout: true,
-                    AttachStderr: true,
-                });
-                const stream = yield exec.start({});
-                return yield new Promise((resolve, reject) => {
-                    let output = '';
-                    stream.on('data', (chunk) => {
-                        output += chunk.toString();
-                    });
-                    stream.on('end', () => {
-                        resolve(output);
-                    });
-                    stream.on('error', (err) => {
-                        reject(err);
-                    });
+                const entries = yield fs_1.promises.readdir(finalPath, { withFileTypes: true });
+                return entries.map(entry => {
+                    const name = entry.name + (entry.isDirectory() ? '/' : '');
+                    return path_1.default.posix.join(relativePath, name); // relativePath + entry.name
                 });
             }
-            catch (error) {
-                console.error(`Failed to list files in container ${containerId}:`, error);
-                throw new Error('Could not retrieve file list');
+            catch (err) {
+                console.error(`Error reading workspace files for user ${userId}:`, err);
+                throw new Error('Failed to list workspace files');
+            }
+        });
+    }
+    readFileContent(userId, relativePath) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const basePath = (0, sanitisers_1.getSecureWorkspacePath)(userId);
+                const finalPath = path_1.default.join(basePath, relativePath);
+                // Ensure the path is within the user's workspace
+                if (!finalPath.startsWith(basePath)) {
+                    throw new Error('Path traversal attempt detected');
+                }
+                const content = yield fs_1.promises.readFile(finalPath, 'utf-8');
+                return content;
+            }
+            catch (err) {
+                console.error(`Error reading file ${relativePath} for user ${userId}:`, err);
+                throw new Error('Failed to read file content');
+            }
+        });
+    }
+    writeFileContent(userId, relativePath, content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const basePath = (0, sanitisers_1.getSecureWorkspacePath)(userId);
+                const finalPath = path_1.default.join(basePath, relativePath);
+                // Ensure the path is within the user's workspace
+                if (!finalPath.startsWith(basePath)) {
+                    throw new Error('Path traversal attempt detected');
+                }
+                yield fs_1.promises.writeFile(finalPath, content, 'utf-8');
+                console.log(content);
+            }
+            catch (err) {
+                console.error(`Error writing file ${relativePath} for user ${userId}:`, err);
+                throw new Error('Failed to write file content');
             }
         });
     }

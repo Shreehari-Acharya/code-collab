@@ -1,5 +1,11 @@
 import Docker from 'dockerode';
 import WebSocket from 'ws';
+import path from 'path';
+import { promises as fs } from 'fs';
+import dotenv from 'dotenv';
+import { getSecureWorkspacePath } from '../../utils/sanitisers';
+
+dotenv.config();
 
 export class DockerService {
     private docker: Docker;
@@ -12,12 +18,17 @@ export class DockerService {
 
     async createNewWorkspace( userId: string ): Promise<string> {
         try {
+
+            const sanitisedPath = getSecureWorkspacePath(userId);
             const container = await this.docker.createContainer({
                 Image: 'user-node-workspace',
                 name: `workspace-${userId}`,
                 Cmd: ['sh'],
                 Tty: true,
                 HostConfig: {
+                    Binds: [
+                        `${sanitisedPath}:/home/code-collab/workspace`, // Bind mount user workspace
+                    ],
                     PortBindings: {
                         '3000/tcp': [{ HostPort: '' }], // random port
                     },
@@ -82,42 +93,63 @@ export class DockerService {
         }
     }
 
-    async listWorkspaceFiles(containerId: string, path: string) : Promise<string> {
+    async listWorkspaceFiles(userId: string, relativePath: string): Promise<string[]> {
         try {
-            const container = this.docker.getContainer(containerId);
+            const basePath = getSecureWorkspacePath(userId);
+            const finalPath = path.join(basePath, relativePath);
 
-            if( !container ) {
-                console.error(`Container with ID ${containerId} not found`);
-                throw new Error('Container not found');
+            // Ensure the path is within the user's workspace
+            if (!finalPath.startsWith(basePath)) {
+                console.log(finalPath, basePath);
+                throw new Error('Path traversal attempt detected');
             }
 
-            const exec = await container.exec({
-                Cmd: ['ls', '-1Ap', `/workspace/${path}`], 
-                AttachStdout: true,
-                AttachStderr: true,
+            const entries = await fs.readdir(finalPath , { withFileTypes: true });
+
+
+            return entries.map(entry => {
+                const name = entry.name + (entry.isDirectory() ? '/' : '');
+                return path.posix.join(relativePath, name); // relativePath + entry.name
             });
-
-            const stream = await exec.start({});
-
-            return await new Promise((resolve, reject) => {
-                let output = '';
-
-                stream.on('data', (chunk: Buffer) => {
-                    output += chunk.toString();
-                });
-
-                stream.on('end', () => {
-                    resolve(output);
-                });
-
-                stream.on('error', (err) => {
-                    reject(err);
-                });
-            });
-        } catch (error) {
-            console.error(`Failed to list files in container ${containerId}:`, error);
-            throw new Error('Could not retrieve file list');
+        } catch (err) {
+            console.error(`Error reading workspace files for user ${userId}:`, err);
+            throw new Error('Failed to list workspace files');
         }
     }
 
+    async readFileContent(userId: string, relativePath: string): Promise<string> {
+        try {
+            const basePath = getSecureWorkspacePath(userId);
+            const finalPath = path.join(basePath, relativePath);
+
+            // Ensure the path is within the user's workspace
+            if (!finalPath.startsWith(basePath)) {
+                throw new Error('Path traversal attempt detected');
+            }
+
+            const content = await fs.readFile(finalPath, 'utf-8');
+            return content;
+        } catch (err) {
+            console.error(`Error reading file ${relativePath} for user ${userId}:`, err);
+            throw new Error('Failed to read file content');
+        }
+    }
+
+    async writeFileContent(userId: string, relativePath: string, content: string): Promise<void> {
+        try {
+            const basePath = getSecureWorkspacePath(userId);
+            const finalPath = path.join(basePath, relativePath);
+
+            // Ensure the path is within the user's workspace
+            if (!finalPath.startsWith(basePath)) {
+                throw new Error('Path traversal attempt detected');
+            }
+
+            await fs.writeFile(finalPath, content, 'utf-8');
+            console.log(content)
+        } catch (err) {
+            console.error(`Error writing file ${relativePath} for user ${userId}:`, err);
+            throw new Error('Failed to write file content');
+        }
+    }
 }

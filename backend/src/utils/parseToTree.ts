@@ -1,24 +1,18 @@
 import { TreeViewElement } from "../types/treeViewElement";
 
-function sanitizeString(input: string): string {
-  // Remove non-printable characters (nulls, tabs, control chars)
-  return input.replace(/[^\x20-\x7E]/g, '');
-}
-
-export function parseToTree(output: string, path: string): TreeViewElement[] {
-  return output
-    .split('\n')
-    .filter(Boolean)
-    .map((rawName): TreeViewElement => {
-      const sanitisedName = sanitizeString(rawName);
-      const isDir = sanitisedName.endsWith('/');
-      const filename = sanitisedName.replace(/\/$/, ''); // Remove trailing slash for files
-
-      return {
-        id: `${sanitisedName}`,
-        isSelectable: !isDir,
-        name: filename,
-        children: isDir ? [] : undefined,
-      };
-    });
+export function parseToTree(output: string[]): TreeViewElement[] {
+  const tree = output.map((rawPath): TreeViewElement => {
+    const isDir = rawPath.endsWith('/');
+    const cleanedPath = rawPath.replace(/\/$/, '');
+    const parts = cleanedPath.split('/');
+    const name = parts[parts.length - 1]; // just filename
+    return {
+      id: rawPath,              // full relative path
+      name,                     // just filename
+      isSelectable: !isDir,
+      children: isDir ? [] : undefined,
+    };
+  });
+  console.log("Parsed tree:", tree);
+  return tree
 }

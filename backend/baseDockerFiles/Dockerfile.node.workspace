@@ -1,22 +1,32 @@
 # Dockerfile.workspace
 FROM node:18-slim
 
-# Create a non-root user for safety
-RUN useradd -ms /bin/bash devuser
+# change this to a group that has access to the shared mount point
+ARG HOST_GID=1001 
+# can be any user. as long as the group has access to the shared mount point
+ARG HOST_UID=1004
+
+# Create group and user with specified UID/GID
+RUN groupadd -g ${HOST_GID} codecollab && \
+    useradd -m -s /bin/bash -u ${HOST_UID} -g ${HOST_GID} code-collab
 
 # Set working directory
-WORKDIR /workspace
+WORKDIR /home/code-collab/workspace
 
-# Install additional tools - these are common for development
+# Install development tools
 RUN apt-get update && apt-get install -y \
     git curl build-essential python3 python3-pip nano htop \
     && rm -rf /var/lib/apt/lists/*
 
-# Set permissions
-RUN chown -R devuser:devuser /workspace
+# Ensure permissions for the user and shared mount point
+RUN mkdir -p /home/code-collab/workspace && \
+    chown -R code-collab:codecollab /home/code-collab && \
+    chmod -R 2775 /home/code-collab/workspace && \
+    echo "umask 0002" >> /home/code-collab/.profile
 
-# Switch to non-root user
-USER devuser
 
-# Start with a shell
+# Switch to the non-root user
+USER code-collab
+
+# Start shell session
 CMD ["sh"]

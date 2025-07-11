@@ -52,25 +52,66 @@ app.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!userId) {
         return res.status(400).send('User ID is required');
     }
-    const containerId = yield docker.createNewWorkspace(userId);
-    res.status(201).json({ message: 'Container created', containerId });
+    try {
+        const containerId = yield docker.createNewWorkspace(userId);
+        res.status(201).json({ message: 'Container created', containerId });
+    }
+    catch (error) {
+        console.error(error);
+    }
 }));
 app.get('/fileStructure', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const containerId = req.query.containerId;
+    const userId = req.query.userId;
     const path = req.query.path ? req.query.path : '/';
-    console.log(path);
     if (!path) {
         return res.status(400).send('Path is required');
     }
-    if (!containerId) {
+    if (!userId) {
         return res.status(400).send('Container ID is required');
     }
-    const output = yield docker.listWorkspaceFiles(containerId, path);
-    if (!output) {
-        return res.status(404).send('No files found');
+    try {
+        const output = yield docker.listWorkspaceFiles(userId, path);
+        if (!output) {
+            return res.status(404).send('No files found');
+        }
+        const tree = (0, parseToTree_1.parseToTree)(output);
+        res.status(200).json(tree);
     }
-    const tree = (0, parseToTree_1.parseToTree)(output, path);
-    res.status(200).json(tree);
+    catch (error) {
+        console.error(error);
+    }
+}));
+app.get('/getFileContents', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.query.userId;
+    const filename = req.query.filename;
+    if (!userId || !filename) {
+        return res.status(400).send('User ID and filename are required');
+    }
+    try {
+        const content = yield docker.readFileContent(userId, filename);
+        if (!content) {
+            return res.status(404).send('File not found');
+        }
+        res.status(200).json({ content });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send('Error reading file');
+    }
+}));
+app.patch('/saveFileContents', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId, filename, content } = req.body;
+    if (!userId || !filename || content === undefined) {
+        return res.status(400).send('User ID, filename and content are required');
+    }
+    try {
+        yield docker.writeFileContent(userId, filename, content);
+        res.status(200).send('File saved successfully');
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send('Error saving file');
+    }
 }));
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
