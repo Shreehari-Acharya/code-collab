@@ -1,12 +1,14 @@
 import './App.css'
-import { ResizableWorkSpace } from './components/resizableWorkspace'
+import { Toaster } from './components/ui/sonner'
+import LandingPage from './pages/landingPage'
 
 
 
 function App() {
   return (
     <>
-      <ResizableWorkSpace/>
+      <LandingPage />
+      <Toaster/>
     </>
   )
 }

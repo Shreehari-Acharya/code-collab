@@ -4,7 +4,11 @@ import http from 'http';
 import { DockerService } from './modules/Docker';
 import cors from 'cors';
 import { parseToTree } from './utils/parseToTree';
-
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './lib/auth'; 
+import { fromNodeHeaders } from 'better-auth/node';
+import dontenv from 'dotenv';
+dontenv.config();
 
 
 const app = express();
@@ -13,12 +17,22 @@ const wss = new WebSocketServer({ server });
 
 // add cors for ws and express
 app.use(cors({
-    origin: '*', // Allow all origins for simplicity, adjust as needed
+    origin: process.env.FRONTEND_URL as string, // Allow all origins for simplicity, adjust as needed
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    credentials: true, // Allow credentials if needed
 }));
 
 
+app.all("/api/auth/{*any}", toNodeHandler(auth));  // express v5 * is replaced with {*any} to match all paths
 
 app.use(express.json());
+
+app.get("/api/me", async (req, res) => {
+ 	const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+	return res.json(session);
+});
 
 const PORT = 3000;
 

@@ -1,0 +1,15 @@
+services:
+    postgres:
+      container_name: code_collab_postgres
+      image: postgres:latest
+      environment:
+        POSTGRES_USER: code_collab_admin
+        POSTGRES_PASSWORD: code_collab_pass
+        POSTGRES_DB: code_collab
+      ports:
+        - "5432:5432"
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

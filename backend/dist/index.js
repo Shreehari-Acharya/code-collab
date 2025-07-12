@@ -18,14 +18,28 @@ const http_1 = __importDefault(require("http"));
 const Docker_1 = require("./modules/Docker");
 const cors_1 = __importDefault(require("cors"));
 const parseToTree_1 = require("./utils/parseToTree");
+const node_1 = require("better-auth/node");
+const auth_1 = require("./lib/auth");
+const node_2 = require("better-auth/node");
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const wss = new ws_1.WebSocketServer({ server });
 // add cors for ws and express
 app.use((0, cors_1.default)({
-    origin: '*', // Allow all origins for simplicity, adjust as needed
+    origin: process.env.FRONTEND_URL, // Allow all origins for simplicity, adjust as needed
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    credentials: true, // Allow credentials if needed
 }));
+app.all("/api/auth/{*any}", (0, node_1.toNodeHandler)(auth_1.auth)); // express v5 * is replaced with {*any} to match all paths
 app.use(express_1.default.json());
+app.get("/api/me", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const session = yield auth_1.auth.api.getSession({
+        headers: (0, node_2.fromNodeHeaders)(req.headers),
+    });
+    return res.json(session);
+}));
 const PORT = 3000;
 const docker = new Docker_1.DockerService();
 wss.on('connection', (ws, req) => __awaiter(void 0, void 0, void 0, function* () {
