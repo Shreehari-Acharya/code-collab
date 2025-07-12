@@ -69,7 +69,7 @@ class DockerService {
                     return;
                 }
                 const exec = yield container.exec({
-                    Cmd: ['sh'], // or ['bash'] if installed
+                    Cmd: ['bash'],
                     AttachStdout: true,
                     AttachStderr: true,
                     AttachStdin: true,

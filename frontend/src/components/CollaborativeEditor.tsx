@@ -2,7 +2,7 @@ import Editor, { type OnMount } from "@monaco-editor/react"
 
 interface CollaborativeEditorProps {
   value: string
-  onChange: (value: string) => void
+  onChange: (filename: string, content: string) => void
   onSave: () => void
   filename: string
 }
@@ -26,17 +26,9 @@ export default function CollaborativeEditor({
 
 
   const handleMount: OnMount = (editor, monaco) => {
-    const model = editor.getModel()
-
-
     // Ctrl+S to save
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       onSave()
-    })
-
-    model?.onDidChangeContent(() => {
-      const currentValue = model.getValue()
-      onChange(currentValue)
     })
   }
 
@@ -45,10 +37,10 @@ export default function CollaborativeEditor({
       <Editor
         value={value}
         key={filename}
-        onChange={(v) => onChange(v || "")}
         height="100%"
         theme="vs-dark"
         defaultLanguage={getLanguageFromFileName(filename)}
+        onChange={(v) => onChange(filename, v || "")}
         onMount={handleMount}
       />
     </div>

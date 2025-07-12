@@ -6,7 +6,7 @@ import {
 import CollaborativeEditor from "./CollaborativeEditor"
 import TerminalComponent from "./Terminal"
 import FileExplorer from "./FileExplorer"
-import { useCallback, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import axios from "axios";
 import clsx from "clsx"
 import { X } from "lucide-react"
@@ -14,13 +14,19 @@ import { debounce } from "lodash"
 
 
 export function ResizableWorkSpace() {
-  const containerId = "6be06b09aa30c7424a36dcff1024b39aec34fe1468cd61df6184d955bb8d5552"
+  const containerId = "756b8d8f05981a78dda30af4f33632e7f070a9f09f75d41bdfb8c2812edb749b"
   const userId = "shree-06"
 
   const [openFiles, setOpenFiles] = useState<string[]>([])
   const [activeFile, setActiveFile] = useState<string | null>(null)
   const [fileContents, setFileContents] = useState<Record<string, string>>({})
   const [unsavedChanges, setUnsavedChanges] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+  return () => {
+    debouncedSave.cancel();
+  };
+}, []);
 
    const fetchFileContent = async (filename: string) => {
     try {
@@ -64,25 +70,27 @@ export function ResizableWorkSpace() {
     })
   }
 
-  const handleEditorChange = (value: string | undefined) => {
-    if (!activeFile || value === undefined) return
-    setFileContents(prev => ({ ...prev, [activeFile]: value }))
-    setUnsavedChanges(prev => ({ ...prev, [activeFile]: true }))
-
-    debouncedSave(); 
-  }
-
+  const handleEditorChange = (filename: string, value: string) => {
+  if (!filename || value === undefined) return;
+  setFileContents(prev => ({ ...prev, [filename]: value }))
+  setUnsavedChanges(prev => ({ ...prev, [filename]: true }))
+  debouncedSave(filename, value)
+}
 
 
- const handleSave = useCallback(() => {
-  if (activeFile && fileContents[activeFile] !== undefined) {
-    saveFileContent(activeFile, fileContents[activeFile]);
-  }
-}, [activeFile, fileContents]); 
 
-  const debouncedSave = useCallback(
-  debounce(handleSave, 2000, { maxWait: 10000 }),
-  [handleSave]
+// Save content immediately when called with explicit values
+const handleSave = async (filename: string, content: string) => {
+  await saveFileContent(filename, content);
+};
+
+// Debounced version that always gets latest values
+const debouncedSave = useMemo(
+  () =>
+    debounce((filename: string, content: string) => {
+      handleSave(filename, content);
+    }, 4000, { maxWait: 12000 }),
+  []
 );
 
   return (
@@ -99,12 +107,12 @@ export function ResizableWorkSpace() {
           <ResizablePanel defaultSize={15} >
             <div className="bg-slate-900 text-white border-b border-slate-700 h-full">
               {/* Tab bar */}
-              <div className="flex gap-1 px-2 py-1 text-sm bg-slate-800">
+              <div className="flex gap-1 px-2 py-1 text-sm bg-slate-800 h-8">
                 {openFiles.map(filename => (
                   <div
                     key={filename}
                     className={clsx(
-                      "flex items-center gap-2 px-3 py-1 rounded-t-md cursor-pointer",
+                      "flex items-center gap-2 px-3 py-1 cursor-pointer",
                       activeFile === filename
                         ? "bg-slate-700 text-white"
                         : "bg-slate-800 text-slate-400 hover:bg-slate-700"
@@ -127,23 +135,23 @@ export function ResizableWorkSpace() {
               </div>
 
               {/* Editor */}
-              <div className="h-full">
+              <div className="h-full bg-[#1e1e1e] pt-2">
                 {activeFile ? (
                   <CollaborativeEditor
                     value={fileContents[activeFile]}
                     onChange={handleEditorChange}
-                    onSave={handleSave}
+                    onSave={() => handleSave(activeFile, fileContents[activeFile])}
                     filename={activeFile}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="flex text-2xl items-center justify-center h-full text-gray-500">
                     Select a file to edit
                   </div>
                 )}
               </div>
             </div>
           </ResizablePanel>
-          <ResizableHandle className="bg-amber-400" />
+          <ResizableHandle className="bg-blue-950" />
           <ResizablePanel defaultSize={5} className="bg-slate-900">
             {/* <div className="h-8"></div> */}
             <TerminalComponent webSocketUrl={`ws://localhost:3000/?containerId=${containerId}&userId=${userId}`} />

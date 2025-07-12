@@ -62,7 +62,7 @@ export class DockerService {
             }
 
             const exec = await container.exec({
-                Cmd: ['sh'], // or ['bash'] if installed
+                Cmd: ['bash'], 
                 AttachStdout: true,
                 AttachStderr: true,
                 AttachStdin: true,

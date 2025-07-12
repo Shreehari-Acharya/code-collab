@@ -1,31 +1,29 @@
 # Dockerfile.workspace
-FROM node:18-slim
+FROM debian:bullseye-slim
 
-# change this to a group that has access to the shared mount point
-ARG HOST_GID=1001 
-# can be any user. as long as the group has access to the shared mount point
-ARG HOST_UID=1004
+# Arguments for UID/GID of your workspace user
+ARG HOST_UID=1000
+ARG HOST_GID=1000
 
-# Create group and user with specified UID/GID
+# Install required tools, Node.js 23.x, and cleanup
+RUN apt-get update && apt-get install -y \
+    curl gnupg build-essential python3 python3-pip nano htop git && \
+    curl -fsSL https://deb.nodesource.com/setup_23.x -o nodesource_setup.sh && \
+    bash nodesource_setup.sh && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/* /nodesource_setup.sh
+
+# Create a group and user with specific UID/GID
 RUN groupadd -g ${HOST_GID} codecollab && \
     useradd -m -s /bin/bash -u ${HOST_UID} -g ${HOST_GID} code-collab
 
-# Set working directory
+# Set up the working directory and permissions
+RUN mkdir -p /home/code-collab/workspace 
+
+# Set the working directory
 WORKDIR /home/code-collab/workspace
 
-# Install development tools
-RUN apt-get update && apt-get install -y \
-    git curl build-essential python3 python3-pip nano htop \
-    && rm -rf /var/lib/apt/lists/*
-
-# Ensure permissions for the user and shared mount point
-RUN mkdir -p /home/code-collab/workspace && \
-    chown -R code-collab:codecollab /home/code-collab && \
-    chmod -R 2775 /home/code-collab/workspace && \
-    echo "umask 0002" >> /home/code-collab/.profile
-
-
-# Switch to the non-root user
+# Switch to non-root user
 USER code-collab
 
 # Start shell session
