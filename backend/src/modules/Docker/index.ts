@@ -9,11 +9,13 @@ dotenv.config();
 
 export class DockerService {
     private docker: Docker;
+    private userToDockerMap: Map<string, Docker.Container>;
 
     constructor() {
         this.docker = new Docker({
             socketPath: '/var/run/docker.sock',
         });
+        this.userToDockerMap = new Map<string, Docker.Container>();
     }
 
     async createNewWorkspace( userId: string ): Promise<string> {
@@ -43,6 +45,8 @@ export class DockerService {
 
             await container.start();
             console.log(`Container created for user ${userId} with ID: ${container.id}`);
+            this.userToDockerMap.set(userId, container);
+
             return container.id;
 
         } catch (error) {
@@ -51,12 +55,12 @@ export class DockerService {
         }
     }
 
-    async connectToWorkspaceTerminal(containerId: string, ws: WebSocket): Promise<void> {
+    async connectToWorkspaceTerminal(username: string, ws: WebSocket): Promise<void> {
         try {
-            const container = this.docker.getContainer(containerId);
+            const container = this.userToDockerMap.get(username);
 
             if (!container) {
-                console.error(`Container with ID ${containerId} not found`);
+                console.error(`Container for ${username} not found`);
                 ws.close(1008, 'Container not found');
                 return;
             }
@@ -84,11 +88,10 @@ export class DockerService {
             ws.on('close', async () => {
                 // Todo: backup files from container to a persistent storage
                 stream.end();
-                // await container.stop() -> Uncomment in production to stop the container
             });
 
         } catch (error) {
-            console.error(`Error connecting to container ${containerId}:`, error);
+            console.error(`Error connecting to terminal for user ${username}:`, error);
             ws.close(1011, 'Internal error');
         }
     }
@@ -150,6 +153,25 @@ export class DockerService {
         } catch (err) {
             console.error(`Error writing file ${relativePath} for user ${userId}:`, err);
             throw new Error('Failed to write file content');
+        }
+    }
+
+    async closeWorkspace(username: string): Promise<void> {
+        try {
+            const container = this.userToDockerMap.get(username);
+            if (!container) {
+                console.error(`No workspace instance found for user ${username}`);
+                return;
+            }
+
+            // TODO: Backup files from container to a persistent storage
+
+            await container.stop();
+            this.userToDockerMap.delete(username);
+            console.log(`Workspace for user ${username} closed successfully`);
+
+        } catch (error) {
+            console.error(`Error closing workspace for user ${username}:`, error);
         }
     }
 }

@@ -14,6 +14,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum STATUS {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -24,6 +30,7 @@ model User {
   image         String?
   sessions      Session[]
   accounts      Account[]
+  workspaces    Workspace[]
 
   username        String?
   displayUsername String?
@@ -75,4 +82,18 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  containerId String
+  status      STATUS
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@map("workspace")
 }
