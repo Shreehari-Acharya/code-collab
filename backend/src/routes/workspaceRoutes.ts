@@ -16,9 +16,9 @@ workspaceRoutes.use(betterAuthMiddleware);
 
 workspaceRoutes.get("/list", listWorkspaces);
 workspaceRoutes.get("/file-structure", getWorkspaceFiles);
-workspaceRoutes.get("file-content", getFileContents);
+workspaceRoutes.get("/file-content", getFileContents);
 workspaceRoutes.post("/create", createWorkspace); 
-workspaceRoutes.put("file-content", saveFileContents);
+workspaceRoutes.put("/file-content", saveFileContents);
 workspaceRoutes.patch("/update/:id", updateStatusOfWorkspace);
 
 

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "rm -r dist/ && tsc && nodemon dist/index.js --watch src --ext ts",
+    "dev": "tsc && nodemon dist/index.js --watch src --ext ts",
     "start": "node src/index.js",
     "build": "tsc"
   },

@@ -34,20 +34,16 @@ export async function createWorkspace(req: Request, res: Response) {
                 id: true,
                 name: true,
                 status: true,
-                owner: {
-                    select: {
-                        id: true,
-                        username: true
-                    }
-                },
                 createdAt: true
             }
         });
         
         return res.status(201).json(newWorkspace);
-    } catch (error) {
-        console.error("Error creating workspace:", error);
-        return res.status(500).json({ error: "Internal Server Error" });
+    } catch (error: any) {
+        if (error.message === "DUPLICATE_WORKSPACE") {
+            return res.status(400).json({ message: "another workspace is running. You can only have one running workspace at a given time" });
+        }
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
@@ -70,8 +66,7 @@ export async function listWorkspaces(req: Request, res: Response) {
         });
 
         return res.status(200).json(workspaces);
-    } catch (error) {
-        console.error("Error listing workspaces:", error);
+    } catch {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }
@@ -93,28 +88,31 @@ export async function updateStatusOfWorkspace(req: Request, res: Response) {
         });
 
         if (!currentStatus) {
-            return res.status(404).json({ error: "Workspace not found or has been deleted" });
+            return res.status(404).json({ message: "Workspace not found or has been deleted" });
         }
         else if (currentStatus.status === 'ACTIVE' && status === 'INACTIVE') {
             // If the workspace is active and the new status is inactive, stop the Docker container
             await workspace.closeWorkspace(username!);
+            res.status(200).json({ message: "Workspace paused successfully" });
         }
         else if (currentStatus.status === 'INACTIVE' && status === 'ACTIVE') {
             // If the workspace is inactive and the new status is active, start the Docker container
 
             // TODO: mount the files from persistent storage 
             await workspace.createNewWorkspace(username!);
+            res.status(200).json({ message: "Workspace started successfully" });
         }
         else if (status === 'DELETED') {
             // If the status is deleted, remove the workspace from the database
             await prisma.workspace.delete({
                 where: { id, owner: { username: username }, deletedAt: null }
             });
+            await workspace.closeWorkspace(username!);
+            res.status(200).json({ message: "Workspace deleted successfully" });
         }
 
-    } catch (error) {
-        console.error("Error updating workspace status:", error);
-        return res.status(500).json({ error: "Internal Server Error" });
+    } catch {
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
@@ -128,10 +126,9 @@ export async function getWorkspaceFiles(req: Request, res: Response) {
             return res.status(200).json({ message: "No files found" });
         }
         const tree = parseToTree(files);
-
+        console.log("File tree structure:", JSON.stringify(tree, null, 2));
         return res.status(200).json(tree);
     } catch (error) {
-        console.error("Error listing workspace files:", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }
@@ -150,8 +147,7 @@ export async function getFileContents(req: Request, res: Response) {
             return res.status(404).json({ error: "File not found" });
         }
         return res.status(200).json({ content });
-    } catch (error) {
-        console.error("Error reading file contents:", error);
+    } catch {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }
@@ -168,7 +164,6 @@ export async function saveFileContents(req: Request, res: Response) {
         await workspace.writeFileContent(username!, filename, content);
         return res.status(200).json({ message: "File saved successfully" });
     } catch (error) {
-        console.error("Error saving file contents:", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }

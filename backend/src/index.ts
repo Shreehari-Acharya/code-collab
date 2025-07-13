@@ -18,7 +18,7 @@ const PORT = 3000;
 // add cors for ws and express
 app.use(cors({
     origin: process.env.FRONTEND_URL as string, // Allow all origins for simplicity, adjust as needed
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
     credentials: true, // Allow credentials if needed
 }));
 

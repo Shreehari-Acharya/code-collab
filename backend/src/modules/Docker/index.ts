@@ -16,15 +16,39 @@ export class DockerService {
             socketPath: '/var/run/docker.sock',
         });
         this.userToDockerMap = new Map<string, Docker.Container>();
+
+        const containers = this.docker.listContainers({ all: true });
+
+        // may be useful for restoring containers on server restart as we will loose 
+        // the mapping of users to containers
+        // this will restore the containers for users who had active workspaces before server restart
+        // and will allow them to continue working without needing to recreate the workspace
+        // this is not a perfect solution, as it will not restore the state of the container
+        // but it will allow users to continue working on their files
+        containers.then((containers) => {
+            containers.forEach((containerInfo) => {
+                if (containerInfo.Names && containerInfo.Names.length > 0) {
+                    const fullContainerName = containerInfo.Names[0].replace('/', '');
+                    if(fullContainerName.startsWith('workspace-')) {
+                        const username = fullContainerName.replace('workspace-', '');
+                        console.log(`Restoring container for user ${username} with ID: ${containerInfo.Id}`);
+                        this.userToDockerMap.set(username, this.docker.getContainer(containerInfo.Id));
+                    }
+                }
+            });
+        });
     }
 
-    async createNewWorkspace( userId: string ): Promise<string> {
+    async createNewWorkspace( username: string ): Promise<string> {
         try {
+            if( this.userToDockerMap.has(username) ) {
+                throw new Error("DUPLICATE_WORKSPACE");
+            }
 
-            const sanitisedPath = getSecureWorkspacePath(userId);
+            const sanitisedPath = getSecureWorkspacePath(username);
             const container = await this.docker.createContainer({
                 Image: 'user-node-workspace',
-                name: `workspace-${userId}`,
+                name: `workspace-${username}`,
                 Cmd: ['sh'],
                 Tty: true,
                 HostConfig: {
@@ -44,14 +68,14 @@ export class DockerService {
             })
 
             await container.start();
-            console.log(`Container created for user ${userId} with ID: ${container.id}`);
-            this.userToDockerMap.set(userId, container);
+            console.log(`Container created for user ${username} with ID: ${container.id}`);
+            this.userToDockerMap.set(username, container);
 
             return container.id;
 
-        } catch (error) {
-            console.error(`Error creating container for user ${userId}:`, error);
-            throw new Error(`Failed to create workspace for user ${userId}`);
+        } catch (error: any) {
+            console.error(`Error creating container for user ${username}:`, error.message || error);
+            throw new Error(error.message || 'Failed to create workspace');
         }
     }
 
@@ -90,15 +114,15 @@ export class DockerService {
                 stream.end();
             });
 
-        } catch (error) {
-            console.error(`Error connecting to terminal for user ${username}:`, error);
+        } catch (error: any) {
+            console.error(`Error connecting to terminal for user ${username}:`, error.message || error);
             ws.close(1011, 'Internal error');
         }
     }
 
-    async listWorkspaceFiles(userId: string, relativePath: string): Promise<string[]> {
+    async listWorkspaceFiles(username: string, relativePath: string): Promise<string[]> {
         try {
-            const basePath = getSecureWorkspacePath(userId);
+            const basePath = getSecureWorkspacePath(username);
             const finalPath = path.join(basePath, relativePath);
 
             // Ensure the path is within the user's workspace
@@ -114,15 +138,15 @@ export class DockerService {
                 const name = entry.name + (entry.isDirectory() ? '/' : '');
                 return path.posix.join(relativePath, name); // relativePath + entry.name
             });
-        } catch (err) {
-            console.error(`Error reading workspace files for user ${userId}:`, err);
+        } catch (err: any) {
+            console.error(`Error reading workspace files for user ${username}:`, err.message || err);
             throw new Error('Failed to list workspace files');
         }
     }
 
-    async readFileContent(userId: string, relativePath: string): Promise<string> {
+    async readFileContent(username: string, relativePath: string): Promise<string> {
         try {
-            const basePath = getSecureWorkspacePath(userId);
+            const basePath = getSecureWorkspacePath(username);
             const finalPath = path.join(basePath, relativePath);
 
             // Ensure the path is within the user's workspace
@@ -132,15 +156,15 @@ export class DockerService {
 
             const content = await fs.readFile(finalPath, 'utf-8');
             return content;
-        } catch (err) {
-            console.error(`Error reading file ${relativePath} for user ${userId}:`, err);
+        } catch (err: any) {
+            console.error(`Error reading file ${relativePath} for user ${username}:`, err.message || err);
             throw new Error('Failed to read file content');
         }
     }
 
-    async writeFileContent(userId: string, relativePath: string, content: string): Promise<void> {
+    async writeFileContent(username: string, relativePath: string, content: string): Promise<void> {
         try {
-            const basePath = getSecureWorkspacePath(userId);
+            const basePath = getSecureWorkspacePath(username);
             const finalPath = path.join(basePath, relativePath);
 
             // Ensure the path is within the user's workspace
@@ -150,8 +174,8 @@ export class DockerService {
 
             await fs.writeFile(finalPath, content, 'utf-8');
             console.log(content)
-        } catch (err) {
-            console.error(`Error writing file ${relativePath} for user ${userId}:`, err);
+        } catch (err: any) {
+            console.error(`Error writing file ${relativePath} for user ${username}:`, err.message || err);
             throw new Error('Failed to write file content');
         }
     }
@@ -170,8 +194,8 @@ export class DockerService {
             this.userToDockerMap.delete(username);
             console.log(`Workspace for user ${username} closed successfully`);
 
-        } catch (error) {
-            console.error(`Error closing workspace for user ${username}:`, error);
+        } catch (error: any) {
+            console.error(`Error closing workspace for user ${username}:`, error.message || error);
         }
     }
 }
