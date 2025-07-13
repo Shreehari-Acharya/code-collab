@@ -1,25 +1,28 @@
 import { Tree, File, Folder, type TreeViewElement } from "./ui/freeTreeView"
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import axios from "@/lib/axios";
 import { RefreshCcw } from "lucide-react";
 
 interface FileExplorerProps {
-  userId: string;
   handleFileClick: (id: string) => void;
 }
-export default function FileExplorer({ userId, handleFileClick }: FileExplorerProps) {
+export default function FileExplorer({ handleFileClick }: FileExplorerProps) {
   const [treeData, setTreeData] = useState<TreeViewElement[]>([]);
 
   const fetchWorkspaceFiles = useCallback(async (path: string = '/') => {
     try {
       console.log("Fetching workspace files for path:", path);
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/fileStructure/?userId=${userId}&path=${path}`);
+      const { data } = await axios.get(`/api/workspaces/file-structure`, {
+        params: {
+          path,
+        }
+      });
       return data as TreeViewElement[];
     } catch (error) {
       console.error("Error fetching workspace files:", error);
       return [];
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -64,6 +67,7 @@ export default function FileExplorer({ userId, handleFileClick }: FileExplorerPr
     if(!elements || elements.length === 0) {
       return <div className="text-gray-500">No files found</div>;
     }
+    console.log("Rendering tree with elements:", elements);
     return elements.map((element) => {
 
 

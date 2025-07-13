@@ -7,16 +7,27 @@ import CollaborativeEditor from "./CollaborativeEditor"
 import TerminalComponent from "./Terminal"
 import FileExplorer from "./FileExplorer"
 import { useMemo, useState, useEffect } from "react";
-import axios from "axios";
+import axios from "@/lib/axios";
 import clsx from "clsx"
 import { X } from "lucide-react"
 import { debounce } from "lodash"
+import { useSession } from "@/lib/authClient";
+import { useNavigate } from "react-router-dom";
 
 
 export function ResizableWorkSpace() {
-  const containerId = "756b8d8f05981a78dda30af4f33632e7f070a9f09f75d41bdfb8c2812edb749b"
-  const userId = "shree-06"
 
+  const { data: session, isPending } = useSession();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (isPending) return;
+    if (!session) {
+      navigate("/");
+    }
+  }, [isPending, session, navigate]);
+
+  
   const [openFiles, setOpenFiles] = useState<string[]>([])
   const [activeFile, setActiveFile] = useState<string | null>(null)
   const [fileContents, setFileContents] = useState<Record<string, string>>({})
@@ -30,7 +41,12 @@ export function ResizableWorkSpace() {
 
    const fetchFileContent = async (filename: string) => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/getFileContents?userId=${userId}&filename=${filename}`)
+      const res = await axios.get("/api/workspaces/file-content", {
+        params: {
+          filename
+        }
+      })
+
       return res.data.content
     } catch (err) {
       console.error("Error loading file:", err)
@@ -40,10 +56,9 @@ export function ResizableWorkSpace() {
 
   const saveFileContent = async (filename: string, content: string) => {
     try {
-      await axios.patch(`${import.meta.env.VITE_API_URL}/saveFileContents`, {
-        userId,
+      await axios.put("/api/workspaces/file-content", {
         filename,
-        content,
+        content
       })
       setUnsavedChanges(prev => ({ ...prev, [filename]: false }))
     } catch (err) {
@@ -89,7 +104,7 @@ const debouncedSave = useMemo(
   () =>
     debounce((filename: string, content: string) => {
       handleSave(filename, content);
-    }, 4000, { maxWait: 12000 }),
+    }, 2500, { maxWait: 12000 }),
   []
 );
 
@@ -98,13 +113,13 @@ const debouncedSave = useMemo(
       direction="horizontal"
       className="w-full h-full"
     >
-      <ResizablePanel defaultSize={15}>
-          <FileExplorer userId={userId} handleFileClick={handleFileClick} />
+      <ResizablePanel defaultSize={20}>
+          <FileExplorer handleFileClick={handleFileClick} />
       </ResizablePanel>
       <ResizableHandle />
-      <ResizablePanel defaultSize={70} className="h-screen">
+      <ResizablePanel defaultSize={80} className="h-screen">
         <ResizablePanelGroup direction="vertical">
-          <ResizablePanel defaultSize={15} >
+          <ResizablePanel defaultSize={80} >
             <div className="bg-slate-900 text-white border-b border-slate-700 h-full">
               {/* Tab bar */}
               <div className="flex gap-1 px-2 py-1 text-sm bg-slate-800 h-8">
@@ -152,9 +167,9 @@ const debouncedSave = useMemo(
             </div>
           </ResizablePanel>
           <ResizableHandle className="bg-blue-950" />
-          <ResizablePanel defaultSize={5} className="bg-slate-900">
+          <ResizablePanel defaultSize={20} className="bg-slate-900">
             {/* <div className="h-8"></div> */}
-            <TerminalComponent webSocketUrl={`ws://localhost:3000/?containerId=${containerId}&userId=${userId}`} />
+            <TerminalComponent webSocketUrl={`${import.meta.env.VITE_WS_URL}`} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanel>
