@@ -7,6 +7,8 @@ import {type WorkspaceTypes} from "@/types/workspace";
 import axios from "@/lib/axios";
 import { AxiosError } from "axios";
 import WorkspaceCard from "@/components/workspaceInfoCard";
+import { Button } from "@/components/ui/button";
+import { signOut } from "@/lib/authClient";
 
 export default function Dashboard() {
 
@@ -57,8 +59,12 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col items-start justify-start min-h-screen">
-      <div className="flex flex-col items-center justify-center p-4">
+      <div className="flex items-center justify-between w-full border p-4">
         <p className="text-4xl mt-4 font-semibold">Welcome, {session?.user?.name || "User"}!</p>
+        <Button variant="default" className="mt-4"
+          onClick={() => signOut()}
+        >
+        Sign Out</Button>
       </div>
       <div className="flex items-start grid-cols-4 gap-4 justify-start w-full h-full pl-10 pt-10">
         {workspaces.map((workspace) => (

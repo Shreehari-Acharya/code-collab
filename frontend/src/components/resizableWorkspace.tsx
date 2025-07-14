@@ -12,11 +12,11 @@ import clsx from "clsx"
 import { X } from "lucide-react"
 import { debounce } from "lodash"
 import { useSession } from "@/lib/authClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 
 export function ResizableWorkSpace() {
-
+  const id = useParams().id;
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   
@@ -32,12 +32,13 @@ export function ResizableWorkSpace() {
   const [activeFile, setActiveFile] = useState<string | null>(null)
   const [fileContents, setFileContents] = useState<Record<string, string>>({})
   const [unsavedChanges, setUnsavedChanges] = useState<Record<string, boolean>>({})
+  const [fetchFileTreeAgain, setFetchFileTreeAgain] = useState(false); // switch to trigger re-fetching file structure
 
   useEffect(() => {
   return () => {
     debouncedSave.cancel();
   };
-}, []);
+}, [id]);
 
    const fetchFileContent = async (filename: string) => {
     try {
@@ -105,7 +106,7 @@ const debouncedSave = useMemo(
     debounce((filename: string, content: string) => {
       handleSave(filename, content);
     }, 2500, { maxWait: 12000 }),
-  []
+  [id]
 );
 
   return (
@@ -114,7 +115,7 @@ const debouncedSave = useMemo(
       className="w-full h-full"
     >
       <ResizablePanel defaultSize={20}>
-          <FileExplorer handleFileClick={handleFileClick} />
+          <FileExplorer handleFileClick={handleFileClick} fetchAgain={fetchFileTreeAgain} />
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize={80} className="h-screen">
@@ -169,7 +170,7 @@ const debouncedSave = useMemo(
           <ResizableHandle className="bg-blue-950" />
           <ResizablePanel defaultSize={20} className="bg-slate-900">
             {/* <div className="h-8"></div> */}
-            <TerminalComponent webSocketUrl={`${import.meta.env.VITE_WS_URL}`} />
+            <TerminalComponent webSocketUrl={`${import.meta.env.VITE_WS_URL}`} onEnterPress={() => setFetchFileTreeAgain((prev) => !prev)} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanel>

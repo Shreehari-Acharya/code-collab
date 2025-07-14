@@ -155,16 +155,15 @@ export default function WorkspaceCard({ workspace, onStatusChange, onDelete }: W
               />
               {workspace.status === "ACTIVE" ? "Running" : "Paused"}
             </Badge>
-
+            {isLoading && (
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Updating...</span>
+              </div>
+            )}
             <div className="text-xs text-muted-foreground">ID: {workspace.id.slice(0, 8)}...</div>
           </div>
 
-          {isLoading && (
-            <div className="flex items-center justify-center mt-4 py-2">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-muted-foreground">Updating...</span>
-            </div>
-          )}
         </CardContent>
       </Card>
 

@@ -14,6 +14,8 @@ function getLanguageFromFileName(name: string) {
   if (name.endsWith(".py")) return "python"
   if (name.endsWith(".html")) return "html"
   if (name.endsWith(".css")) return "css"
+  if (name.endsWith(".md")) return "markdown"
+  if (name.endsWith(".yaml") || name.endsWith(".yml")) return "yaml"
   return "plaintext"
 }
 

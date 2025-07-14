@@ -1,12 +1,14 @@
 import { Tree, File, Folder, type TreeViewElement } from "./ui/freeTreeView"
-import { useState, useEffect, useCallback } from "react";
-import axios from "@/lib/axios";
+import { useState, useEffect } from "react";
 import { RefreshCcw } from "lucide-react";
+import axios from "@/lib/axios";
+import { useCallback } from "react";
 
 interface FileExplorerProps {
   handleFileClick: (id: string) => void;
+  fetchAgain: boolean; // This prop is used to trigger a re-fetch of the file structure
 }
-export default function FileExplorer({ handleFileClick }: FileExplorerProps) {
+export default function FileExplorer({ handleFileClick, fetchAgain }: FileExplorerProps) {
   const [treeData, setTreeData] = useState<TreeViewElement[]>([]);
 
   const fetchWorkspaceFiles = useCallback(async (path: string = '/') => {
@@ -29,7 +31,7 @@ export default function FileExplorer({ handleFileClick }: FileExplorerProps) {
       const rootData = await fetchWorkspaceFiles('/');
       setTreeData(rootData);
     })();
-  }, [fetchWorkspaceFiles]);
+  }, [fetchWorkspaceFiles, fetchAgain]);
 
   // Recursive helper to update a node by id and insert its children
   const addChildrenToNode = (nodes: TreeViewElement[], id: string, children: TreeViewElement[]): TreeViewElement[] => {
@@ -67,7 +69,7 @@ export default function FileExplorer({ handleFileClick }: FileExplorerProps) {
     if(!elements || elements.length === 0) {
       return <div className="text-gray-500">No files found</div>;
     }
-    console.log("Rendering tree with elements:", elements);
+    
     return elements.map((element) => {
 
 

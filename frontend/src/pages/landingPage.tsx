@@ -22,8 +22,8 @@ export default function LandingPage() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center justify-center w-1/2">
-        <h1 className="text-5xl font-bold mb-6">Welcome to Code Collab</h1>
-      <p className="text-2xl mb-4">Just a simple cloud code payground</p>
+        <h1 className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-blue-300 to-cyan-600">Welcome to C0DE C0LLAB</h1>
+      <p className="text-2xl mb-4">Just a simple cloud-based code playground</p>
       </div>
       <div className="flex space-x-4 w-1/2">
            {isSignup ? (

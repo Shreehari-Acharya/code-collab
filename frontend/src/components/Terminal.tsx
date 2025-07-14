@@ -6,9 +6,10 @@ import '@xterm/xterm/css/xterm.css'
 
 interface TerminalComponentProps {
   webSocketUrl: string;
+  onEnterPress: () => void;
 }
 
-const TerminalComponent = ({ webSocketUrl }: TerminalComponentProps) => {
+const TerminalComponent = ({ webSocketUrl, onEnterPress }: TerminalComponentProps) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal>(null)
   const fitAddonRef = useRef<FitAddon>(null)
@@ -41,6 +42,13 @@ const TerminalComponent = ({ webSocketUrl }: TerminalComponentProps) => {
     xterm.open(terminalRef.current)
     fitAddon.fit()
 
+    // When enter is pressed, we will fetch folder structure
+    const keyListener = xterm.onKey(({ key, domEvent }) => {
+      if (key === 'Enter' || domEvent.key === 'Enter') {
+        onEnterPress?.()
+      }
+    })
+
     // ResizeObserver to detect panel resize
     resizeObserverRef.current = new ResizeObserver(() => {
       fitAddon.fit()
@@ -62,6 +70,7 @@ const TerminalComponent = ({ webSocketUrl }: TerminalComponentProps) => {
       socket.close()
       xterm.dispose()
       resizeObserverRef.current?.disconnect()
+      keyListener.dispose()
     }
   }, [webSocketUrl])
 
