@@ -12,7 +12,7 @@ import clsx from "clsx"
 import { X } from "lucide-react"
 import { debounce } from "lodash"
 import { useSession } from "@/lib/authClient";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 
 export function ResizableWorkSpace() {
@@ -169,7 +169,16 @@ const debouncedSave = useMemo(
           </ResizablePanel>
           <ResizableHandle className="bg-blue-950" />
           <ResizablePanel defaultSize={20} className="bg-slate-900">
-            {/* <div className="h-8"></div> */}
+            <div className="h-8 flex items-center justify-end pr-4 gap-8 text-xs text-slate-400"> 
+              <p>NOTE: expose your application on port 3000 to preview.</p>
+              <Link 
+                target="_blank"
+                rel="noopener noreferrer"
+                to={`https://${session?.user.username}.preview.${import.meta.env.VITE_HOSTED_DOMAIN}`}
+                className="text-blue-400 hover:underline"
+              > see preview
+              </Link>
+            </div>
             <TerminalComponent webSocketUrl={`${import.meta.env.VITE_WS_URL}`} onEnterPress={() => setFetchFileTreeAgain((prev) => !prev)} />
           </ResizablePanel>
         </ResizablePanelGroup>
