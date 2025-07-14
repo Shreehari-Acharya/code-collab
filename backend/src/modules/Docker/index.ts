@@ -68,7 +68,7 @@ export class DockerService {
                 },
                 Labels: {
                     "traefik.enable": "true",
-                     [`traefik.http.routers.${username}.rule`]: `Host(\`${username}.preview-code-collab.shreehari.dev\`)`,
+                     [`traefik.http.routers.${username}.rule`]: `Host(\`${username}.${process.env.PREVIEW_DOMAIN}\`)`,
                      [`traefik.http.routers.${username}.entrypoints`]: "websecure",
                      [`traefik.http.routers.${username}.tls.certresolver`]: "myresolver",
                      [`traefik.http.services.${username}.loadbalancer.server.port`]: "3000",
