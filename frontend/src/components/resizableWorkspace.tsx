@@ -6,17 +6,16 @@ import {
 import CollaborativeEditor from "./CollaborativeEditor"
 import TerminalComponent from "./Terminal"
 import FileExplorer from "./FileExplorer"
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import axios from "@/lib/axios";
 import clsx from "clsx"
 import { X } from "lucide-react"
 import { debounce } from "lodash"
 import { useSession } from "@/lib/authClient";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 
 export function ResizableWorkSpace() {
-  const id = useParams().id;
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   
@@ -33,12 +32,6 @@ export function ResizableWorkSpace() {
   const [fileContents, setFileContents] = useState<Record<string, string>>({})
   const [unsavedChanges, setUnsavedChanges] = useState<Record<string, boolean>>({})
   const [fetchFileTreeAgain, setFetchFileTreeAgain] = useState(false); // switch to trigger re-fetching file structure
-
-  useEffect(() => {
-  return () => {
-    debouncedSave.cancel();
-  };
-}, [id]);
 
    const fetchFileContent = async (filename: string) => {
     try {
@@ -96,9 +89,9 @@ export function ResizableWorkSpace() {
 
 
 // Save content immediately when called with explicit values
-const handleSave = async (filename: string, content: string) => {
+const handleSave = useCallback(async (filename: string, content: string) => {
   await saveFileContent(filename, content);
-};
+}, []);
 
 // Debounced version that always gets latest values
 const debouncedSave = useMemo(
@@ -106,8 +99,14 @@ const debouncedSave = useMemo(
     debounce((filename: string, content: string) => {
       handleSave(filename, content);
     }, 2500, { maxWait: 12000 }),
-  [id]
+  [handleSave]
 );
+
+  useEffect(() => {
+  return () => {
+    debouncedSave.cancel();
+  };
+}, [debouncedSave]);
 
   return (
     <ResizablePanelGroup

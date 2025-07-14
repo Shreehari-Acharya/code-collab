@@ -72,7 +72,7 @@ const TerminalComponent = ({ webSocketUrl, onEnterPress }: TerminalComponentProp
       resizeObserverRef.current?.disconnect()
       keyListener.dispose()
     }
-  }, [webSocketUrl])
+  }, [webSocketUrl, onEnterPress])
 
   return (
     <div

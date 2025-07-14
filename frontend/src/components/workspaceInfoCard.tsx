@@ -56,7 +56,7 @@ export default function WorkspaceCard({ workspace, onStatusChange, onDelete }: W
       })
       onStatusChange?.(workspace.id, newStatus)
       toast.success(`Workspace ${newStatus === "ACTIVE" ? "started" : "paused"} successfully`)
-    } catch (error) {
+    } catch {
       toast.error("Failed to update workspace status")
     } finally {
       setIsLoading(false)
@@ -72,7 +72,7 @@ export default function WorkspaceCard({ workspace, onStatusChange, onDelete }: W
       })
       onDelete?.(workspace.id)
       toast.success("Workspace deleted successfully")
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete workspace")
     } finally {
       setIsLoading(false)
