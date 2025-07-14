@@ -4,6 +4,9 @@ import { getSecureWorkspacePath } from "../../utils/sanitisers";
 // there is no official sync command for S3, so we use AWS CLI
 // although there is a third-party package `s3-sync`, but I feel this would be more reliable
 
+// Define folders to exclude
+const blacklist = ["node_modules", "dist", ".git", "build"];
+
 export function syncLocalToS3(username: string, workspaceName: string) {
   if (!process.env.S3_BUCKET_NAME) {
     throw new Error("S3_BUCKET_NAME environment variable is not defined");
@@ -15,10 +18,13 @@ export function syncLocalToS3(username: string, workspaceName: string) {
     throw new Error("AWS CLI is not installed or not in PATH");
   }
 
+  // Build exclude string (e.g. --exclude "node_modules/*" --exclude "dist/*" ...)
+  const excludeOptions = blacklist.map((folder) => `--exclude "${folder}/*"`).join(" ");
+
   const s3Path = `s3://${process.env.S3_BUCKET_NAME}/${username}/${workspaceName}`;
   const sanitizedLocal = getSecureWorkspacePath(username);
 
-  const command = `aws s3 sync "${sanitizedLocal}" "${s3Path}" --delete`;
+  const command = `aws s3 sync "${sanitizedLocal}" "${s3Path}" ${excludeOptions} --delete`;
 
   try {
     console.log(`Syncing local workspace for user ${username} to S3 at ${workspaceName}`);
