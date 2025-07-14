@@ -49,7 +49,6 @@ export class DockerService {
             const container = await this.docker.createContainer({
                 Image: 'user-node-workspace',
                 name: `workspace-${username}`,
-                Cmd: ['sh'],
                 Tty: true,
                 HostConfig: {
                     Binds: [
@@ -60,7 +59,22 @@ export class DockerService {
                     },
                     AutoRemove: true,
                     Memory: 512 * 1024 * 1024, // 512 MB RAM
-                    CpuShares: 256
+                    CpuShares: 256,
+                    PidsLimit: 100, // Limit to 100 processes
+                    CapDrop: ['ALL'], // Drop all capabilities for security
+                    SecurityOpt: ['no-new-privileges'], // Prevent privilege escalation
+                    ReadonlyRootfs: false, // depends if you want user to download packages or not
+                    IpcMode: 'none', // Disable IPC for security
+                    OomKillDisable: false,
+                    MemorySwap: -1, // disable swap
+                    CpuQuota: 50000, // limit to 50% of one CPU
+                },
+                Labels: {
+                    "traefik.enable": "true",
+                     [`traefik.http.routers.${username}.rule`]: `Host(\`${username}.preview-code-collab.shreehari.dev\`)`,
+                     [`traefik.http.routers.${username}.entrypoints`]: "websecure",
+                     [`traefik.http.routers.${username}.tls.certresolver`]: "myresolver",
+                     [`traefik.http.services.${username}.loadbalancer.server.port`]: "3000",
                 },
                 ExposedPorts: {
                     '3000/tcp': {},
@@ -110,7 +124,6 @@ export class DockerService {
             });
 
             ws.on('close', async () => {
-                // Todo: backup files from container to a persistent storage
                 stream.end();
             });
 
