@@ -1,0 +1,15 @@
+http:
+  routers:
+    host-backend:
+      rule: "Host(`api.yourdomain.com`)" # Change this to your domain
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: myresolver
+      service: host-backend-service
+
+  services:
+    host-backend-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:3000"  # your host backend port
