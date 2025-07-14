@@ -54,9 +54,6 @@ export class DockerService {
                     Binds: [
                         `${sanitisedPath}:/home/code-collab/workspace`, // Bind mount user workspace
                     ],
-                    PortBindings: {
-                        '3000/tcp': [{ HostPort: '' }], // random port
-                    },
                     AutoRemove: true,
                     Memory: 512 * 1024 * 1024, // 512 MB RAM
                     CpuShares: 256,
