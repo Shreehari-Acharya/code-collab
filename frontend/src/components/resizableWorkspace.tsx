@@ -16,6 +16,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 
 export function ResizableWorkSpace() {
+  const webSocketUrl = `${import.meta.env.VITE_WS_URL}`;
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
   
@@ -86,7 +87,9 @@ export function ResizableWorkSpace() {
   debouncedSave(filename, value)
 }
 
-
+const onEnterPress = useCallback(() => {
+  setFetchFileTreeAgain(prev => !prev);
+}, []);
 
 // Save content immediately when called with explicit values
 const handleSave = useCallback(async (filename: string, content: string) => {
@@ -178,7 +181,7 @@ const debouncedSave = useMemo(
               > see preview
               </Link>
             </div>
-            <TerminalComponent webSocketUrl={`${import.meta.env.VITE_WS_URL}`} onEnterPress={() => setFetchFileTreeAgain((prev) => !prev)} />
+            <TerminalComponent webSocketUrl={webSocketUrl} onEnterPress={onEnterPress} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanel>
