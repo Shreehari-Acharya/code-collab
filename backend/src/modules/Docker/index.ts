@@ -173,7 +173,7 @@ export class DockerService {
             }
 
             await fs.writeFile(finalPath, content, 'utf-8');
-            console.log(content)
+
         } catch (err: any) {
             console.error(`Error writing file ${relativePath} for user ${username}:`, err.message || err);
             throw new Error('Failed to write file content');
@@ -187,8 +187,6 @@ export class DockerService {
                 console.error(`No workspace instance found for user ${username}`);
                 return;
             }
-
-            // TODO: Backup files from container to a persistent storage
 
             await container.stop();
             this.userToDockerMap.delete(username);

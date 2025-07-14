@@ -6,6 +6,9 @@ import WebSocket from "ws";
 import { type IncomingMessage } from "http";
 import { fromNodeHeaders } from "better-auth/node";
 import {auth} from "../lib/auth";
+import { syncLocalToS3, syncS3ToLocal } from "../modules/Aws-S3";
+import * as fs from "node:fs/promises"
+import { getSecureWorkspacePath } from "../utils/sanitisers";
 
 const workspace = new DockerService();
 
@@ -14,7 +17,21 @@ export async function createWorkspace(req: Request, res: Response) {
     const { workspaceName } = req.body;
 
     if (!workspaceName) {
-        return res.status(400).json({ error: "Workspace name is required" });
+        return res.status(400).json({ message: "Workspace name is required" });
+    }
+
+    const workspaceExists = await prisma.workspace.findFirst({
+        where: {
+            name: workspaceName,
+            owner: {
+                username: username 
+            },
+            deletedAt: null //check active workspaces
+        }
+    });
+
+    if (workspaceExists) {
+        return res.status(400).json({ message: "Workspace with this name already exists" });
     }
 
     try {
@@ -76,30 +93,56 @@ export async function updateStatusOfWorkspace(req: Request, res: Response) {
     const username = req.user.username;
     const { status } = req.body;
 
+    const localWorkspacePath = getSecureWorkspacePath(username!);
+
     if (!status || !["ACTIVE", "INACTIVE", "DELETED"].includes(status)) {
         console.error("Invalid status provided:", status);
         return res.status(400).json({ error: "Status is required or provided invalid status" });
     }
 
     try {
-        const currentStatus = await prisma.workspace.findUnique({
+        const currentWorkspace = await prisma.workspace.findUnique({
             where: { id, owner: { username: username }, deletedAt: null },
-            select: { status: true }
+            select: { name: true, status: true }
         });
 
-        if (!currentStatus) {
+        if (!currentWorkspace) {
             return res.status(404).json({ message: "Workspace not found or has been deleted" });
         }
-        else if (currentStatus.status === 'ACTIVE' && status === 'INACTIVE') {
-            // If the workspace is active and the new status is inactive, stop the Docker container
-            await workspace.closeWorkspace(username!);
+        else if (currentWorkspace.status === 'ACTIVE' && status === 'INACTIVE') {
+            // If the workspace is active and the new status is inactive
+            
+            // copy files to persistent storage
+            syncLocalToS3(username!, currentWorkspace.name);
+
+            // remove the files from local file system
+            await fs.rm(localWorkspacePath, { recursive: true, force: true });
+
+            await workspace.closeWorkspace(username!); // this will stop & kill container as autoRemove is set to true
+
+            // finally update the status in the database
+            await prisma.workspace.update({
+                where: { id, owner: { username: username }, deletedAt: null },
+                data: { status: 'INACTIVE' }
+            });
+
             res.status(200).json({ message: "Workspace paused successfully" });
         }
-        else if (currentStatus.status === 'INACTIVE' && status === 'ACTIVE') {
-            // If the workspace is inactive and the new status is active, start the Docker container
+        else if (currentWorkspace.status === 'INACTIVE' && status === 'ACTIVE') {
+            // If the workspace is inactive and the new status is active
 
-            // TODO: mount the files from persistent storage 
+            // recreate the workspace from persistent storage
+            syncS3ToLocal(username!, currentWorkspace.name);
+
+            // create a new workspace instance
             await workspace.createNewWorkspace(username!);
+
+            // finally update the status in the database
+            await prisma.workspace.update({
+                where: { id, owner: { username: username }, deletedAt: null },
+                data: { status: 'ACTIVE' }
+            });
+            
             res.status(200).json({ message: "Workspace started successfully" });
         }
         else if (status === 'DELETED') {
@@ -107,7 +150,12 @@ export async function updateStatusOfWorkspace(req: Request, res: Response) {
             await prisma.workspace.delete({
                 where: { id, owner: { username: username }, deletedAt: null }
             });
+            // No need to store files as it is being deleted
             await workspace.closeWorkspace(username!);
+
+            // remove the files from local file system
+            await fs.rm(localWorkspacePath, { recursive: true, force: true });
+
             res.status(200).json({ message: "Workspace deleted successfully" });
         }
 
@@ -126,7 +174,7 @@ export async function getWorkspaceFiles(req: Request, res: Response) {
             return res.status(200).json({ message: "No files found" });
         }
         const tree = parseToTree(files);
-        console.log("File tree structure:", JSON.stringify(tree, null, 2));
+
         return res.status(200).json(tree);
     } catch (error) {
         return res.status(500).json({ error: "Internal Server Error" });

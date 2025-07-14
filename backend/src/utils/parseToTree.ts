@@ -13,6 +13,6 @@ export function parseToTree(output: string[]): TreeViewElement[] {
       children: isDir ? [] : undefined,
     };
   });
-  console.log("Parsed tree:", tree);
+
   return tree
 }
