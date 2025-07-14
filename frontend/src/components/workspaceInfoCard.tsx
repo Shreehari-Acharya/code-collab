@@ -106,7 +106,11 @@ export default function WorkspaceCard({ workspace, onStatusChange, onDelete }: W
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleStatusToggle} disabled={isLoading}>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusToggle()
+                }
+                } disabled={isLoading}>
                   {workspace.status === "ACTIVE" ? (
                     <>
                       <Pause className="mr-2 h-4 w-4" />
@@ -121,7 +125,10 @@ export default function WorkspaceCard({ workspace, onStatusChange, onDelete }: W
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteDialog(true)
+                  }}
                   className="text-red-600 focus:text-red-600"
                   disabled={isLoading}
                 >
