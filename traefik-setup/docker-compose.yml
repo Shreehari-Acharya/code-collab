@@ -1,21 +1,22 @@
-version: "3.9"
-
 services:
   traefik:
     image: traefik:v2.11
+    network_mode: "host"
     command:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.myresolver.acme.httpchallenge=true
       - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.myresolver.acme.email=you@example.com # REMINDER: Change this to your email
+      - --certificatesresolvers.myresolver.acme.email=you@example.com # REMINDER: Change this to your email (remove comment in production)
       - --certificatesresolvers.myresolver.acme.storage=/acme.json
-      - --api.dashboard=true # keep this false during production or password protect it
+      - --api.dashboard=true # keep this false during production or password protect it (remove comment in production)
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./acme.json:/acme.json
+      - ./dynamic:/etc/traefik/dynamic

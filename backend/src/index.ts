@@ -26,6 +26,10 @@ app.all("/api/auth/{*any}", toNodeHandler(auth));  // express v5 * is replaced w
 
 app.use(express.json());
 
+app.get("/", (req, res) => {
+    res.send("Welcome to Code Collab API");
+});
+
 wss.on('connection',  wsTermialStreaming);
 
 app.use('/api/workspaces', workspaceRoutes);
